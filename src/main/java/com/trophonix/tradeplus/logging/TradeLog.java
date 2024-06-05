@@ -1,17 +1,20 @@
 package com.trophonix.tradeplus.logging;
 
+import com.google.gson.JsonArray;
 import com.trophonix.tradeplus.util.ItemFactory;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 @Getter
-public class TradeLog implements PostProcessor {
+public class TradeLog {
 
   private Trader player1, player2;
   private List<ItemFactory> player1Items, player2Items;
@@ -37,12 +40,30 @@ public class TradeLog implements PostProcessor {
     this.player2ExtraOffers = player2ExtraOffers;
     this.time = new Date();
   }
+  
+	public JsonArray getPlayer1ItemStacks() {
+		JsonArray stacks = new JsonArray();
+		player1Items.forEach(item -> stacks.add(item.getStack().toString()));
+		return stacks;
+	}
 
-  @Override
-  public void doPostProcessing() {
-    player1.updateName();
-    player2.updateName();
-  }
+	public JsonArray getPlayer2ItemStacks() {
+		JsonArray stacks = new JsonArray();
+        player2Items.forEach(item -> stacks.add(item.getStack().toString()));
+        return stacks;
+    }
+	
+	public JsonArray getPlayer1ExtraOffers() {
+		JsonArray offers = new JsonArray();
+        player1ExtraOffers.forEach(offer -> offers.add(offer.toString()));
+        return offers;
+	}
+	
+	public JsonArray getPlayer2ExtraOffers() {
+		JsonArray offers = new JsonArray();
+        player2ExtraOffers.forEach(offer -> offers.add(offer.toString()));
+        return offers;
+	}
 
   @Getter
   @AllArgsConstructor
@@ -70,5 +91,10 @@ public class TradeLog implements PostProcessor {
       this.id = id;
       this.value = value;
     }
+    
+    @Override
+	public String toString() {
+		return id + "-" + value;
+	}
   }
 }

@@ -250,4 +250,9 @@ public class ItemFactory {
   public int getAmount() {
     return stack.getAmount();
   }
+  
+  @Override
+	public String toString() {
+		return stack.toString();
+	}
 }

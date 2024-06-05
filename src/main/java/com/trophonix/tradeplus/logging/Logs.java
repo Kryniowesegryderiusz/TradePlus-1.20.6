@@ -2,11 +2,13 @@ package com.trophonix.tradeplus.logging;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.trophonix.tradeplus.TradePlus;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,6 +16,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.UnaryOperator;
+
+import org.bukkit.inventory.ItemStack;
 
 public class Logs implements List<TradeLog> {
 
@@ -28,42 +32,14 @@ public class Logs implements List<TradeLog> {
   private File folder;
   private List<TradeLog> logs = new ArrayList<>();
 
-  private Gson gson;
+  private Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
   public Logs(TradePlus plugin, File parent, String file) {
     this.plugin = plugin;
     if (!parent.exists()) {
       parent.mkdirs();
     }
-    folder = new File(parent, file);
-    gson =
-        new GsonBuilder()
-            .registerTypeAdapter(
-                UUID.class,
-                new TypeAdapter<UUID>() {
-                  @Override
-                  public void write(JsonWriter jsonWriter, UUID uuid) throws IOException {
-                    jsonWriter.value(uuid.toString());
-                  }
-
-                  @Override
-                  public UUID read(JsonReader jsonReader) throws IOException {
-                    return UUID.fromString(jsonReader.nextString());
-                  }
-                })
-            .registerTypeAdapterFactory(new PostProcessingEnabler())
-            .registerTypeHierarchyAdapter(List.class, new NullEmptyListAdapter())
-            .registerTypeHierarchyAdapter(Number.class, new NullZeroNumberAdapter())
-            .setPrettyPrinting()
-            .create();
-    //    File[] contents;
-    //    if (folder.exists() && (contents = folder.listFiles()) != null) {
-    //      for (File child : contents) {
-    //        FileReader reader = new FileReader(child);
-    //        add(gson.fromJson(reader, TradeLog.class));
-    //        reader.close();
-    //      }
-    //    }
+    folder = parent;
   }
 
   public Logs(TradePlus plugin, File parent) {
@@ -72,6 +48,7 @@ public class Logs implements List<TradeLog> {
 
   public void log(TradeLog log) {
     logs.add(log);
+    save();
   }
 
   public void save() {
@@ -91,7 +68,14 @@ public class Logs implements List<TradeLog> {
                         .replace("{player2}", log.getPlayer2().getLastKnownName()));
             if (!file.exists()) file.createNewFile();
             FileWriter writer = new FileWriter(file);
-            gson.toJson(log, TradeLog.class, writer);
+            JsonObject obj = new JsonObject();
+
+            obj.addProperty("date", log.getTime().toString());
+            obj.add(log.getPlayer1().getLastKnownName()+"-gave-items", log.getPlayer1ItemStacks());
+            obj.add(log.getPlayer2().getLastKnownName()+"-gave-items", log.getPlayer2ItemStacks());
+            obj.add(log.getPlayer1().getLastKnownName()+"-gave-extra", log.getPlayer1ExtraOffers());
+            obj.add(log.getPlayer2().getLastKnownName()+"-gave-extra", log.getPlayer2ExtraOffers());
+            gson.toJson(obj, writer);
             writer.close();
           } catch (Exception | Error ex) {
             plugin.getLogger().warning(
@@ -99,7 +83,7 @@ public class Logs implements List<TradeLog> {
                     + log.getPlayer1().getLastKnownName()
                     + " and "
                     + log.getPlayer2().getLastKnownName());
-            plugin.getLogger().warning(ex.getLocalizedMessage());
+            ex.printStackTrace();
           }
           iter.remove();
         }
